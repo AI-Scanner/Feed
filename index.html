@@ -1,27 +1,102 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Live Feed</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Webcam Stream to API</title>
 </head>
 <body>
-  <h1>Live Feed</h1>
-  <video id="liveFeed" controls autoplay></video>
+    <h1>Webcam Stream to API</h1>
+    <select id="cameraSelect"></select>
+    <video id="webcam" autoplay playsinline></video>
+    <button id="sendStream">Start Streaming</button>
 
-  <script>
-    const video = document.getElementById('liveFeed');
-    const liveFeedUrl = 'https://your-app.onrender.com/live-feed'; // Replace with your deployed URL
-    
-    fetch(liveFeedUrl)
-      .then(response => {
-        if (response.ok) {
-          video.src = liveFeedUrl;
-        } else {
-          console.error('Error fetching live feed:', response.statusText);
+    <script>
+        const video = document.getElementById('webcam');
+        const sendStreamButton = document.getElementById('sendStream');
+        const cameraSelect = document.getElementById('cameraSelect');
+        let mediaRecorder;
+        let isRecording = false;
+        let interval;
+
+        // Get available video input devices
+        navigator.mediaDevices.enumerateDevices()
+            .then(devices => {
+                devices.forEach(device => {
+                    if (device.kind === 'videoinput') {
+                        const option = document.createElement('option');
+                        option.value = device.deviceId;
+                        option.text = device.label || `Camera ${cameraSelect.length + 1}`;
+                        cameraSelect.appendChild(option);
+                    }
+                });
+
+                // Automatically start the first camera if available
+                if (cameraSelect.options.length > 0) {
+                    startVideoStream(cameraSelect.options[0].value);
+                } else {
+                    console.error('No video input devices found.');
+                }
+            })
+            .catch(error => console.error('Error enumerating devices:', error));
+
+        let currentStream = null;
+
+        function startVideoStream(deviceId) {
+            if (currentStream) {
+                currentStream.getTracks().forEach(track => track.stop());
+            }
+
+            navigator.mediaDevices.getUserMedia({
+                video: { deviceId: { exact: deviceId } }
+            })
+            .then(stream => {
+                currentStream = stream;
+                video.srcObject = stream;
+
+                mediaRecorder = new MediaRecorder(stream, { mimeType: 'video/webm; codecs=vp8' });
+                
+                // When data is available, send it to the server
+                mediaRecorder.ondataavailable = function(event) {
+                    if (event.data.size > 0) {
+                        const formData = new FormData();
+                        formData.append('video', event.data, 'webcam-video.webm');
+
+                        // Send the data to the Render API endpoint
+                        fetch('https://feed-cm5r.onrender.com/upload-video', {
+                            method: 'POST',
+                            body: formData
+                        })
+                        .then(response => response.json())
+                        .then(data => console.log('Video uploaded successfully:', data))
+                        .catch(error => console.error('Error uploading video:', error));
+                    }
+                };
+
+                // Handle start/stop button click
+                sendStreamButton.addEventListener('click', () => {
+                    if (isRecording) {
+                        mediaRecorder.stop();
+                        sendStreamButton.textContent = 'Start Streaming';
+                        clearInterval(interval);
+                    } else {
+                        mediaRecorder.start(100); // Send data every 100 ms
+                        sendStreamButton.textContent = 'Stop Streaming';
+                        interval = setInterval(() => {
+                            mediaRecorder.requestData(); // Request data to be sent
+                        }, 100); // Change this interval as needed
+                    }
+                    isRecording = !isRecording;
+                });
+            })
+            .catch(error => console.error('Error accessing webcam:', error));
         }
-      })
-      .catch(error => console.error('Error:', error));
-  </script>
+
+        // Handle camera selection change
+        cameraSelect.addEventListener('change', () => {
+            const selectedDeviceId = cameraSelect.value;
+            startVideoStream(selectedDeviceId);
+        });
+    </script>
 </body>
 </html>

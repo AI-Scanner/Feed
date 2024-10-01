@@ -2,9 +2,17 @@ const express = require('express');
 const multer = require('multer');
 const fs = require('fs');
 const path = require('path');
+const cors = require('cors'); // Import the cors package
 
 const app = express();
 const port = process.env.PORT || 3000;
+
+// Enable CORS for all origins
+app.use(cors({
+  origin: 'http://127.0.0.1:5501', // Allow requests from your frontend
+  methods: ['POST'], // Specify allowed HTTP methods
+  allowedHeaders: ['Content-Type'] // Specify allowed headers
+}));
 
 // Set up storage for video files
 const storage = multer.diskStorage({
