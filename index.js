@@ -2,71 +2,41 @@ const express = require('express');
 const multer = require('multer');
 const fs = require('fs');
 const path = require('path');
-const cors = require('cors'); // Import the cors package
 
 const app = express();
 const port = process.env.PORT || 3000;
 
-// Enable CORS for all origins
-app.use(cors({
-  origin: 'http://127.0.0.1:5501', // Allow requests from your frontend
-  methods: ['POST'], // Specify allowed HTTP methods
-  allowedHeaders: ['Content-Type'] // Specify allowed headers
-}));
-
-// Set up storage for video files
+// Set up storage for frame images
 const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, 'uploads/');
-  },
-  filename: (req, file, cb) => {
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-    cb(null, file.fieldname + '-' + uniqueSuffix + path.extname(file.originalname));
-  }
+    destination: (req, file, cb) => {
+        cb(null, 'frames/');
+    },
+    filename: (req, file, cb) => {
+        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+        cb(null, file.fieldname + '-' + uniqueSuffix + path.extname(file.originalname));
+    }
 });
 
 const upload = multer({ storage: storage });
 
-// Create uploads folder if it doesn't exist
-if (!fs.existsSync('uploads')) {
-  fs.mkdirSync('uploads');
+// Create frames folder if it doesn't exist
+if (!fs.existsSync('frames')) {
+    fs.mkdirSync('frames');
 }
 
-// Endpoint to receive video from local machine
-app.post('/upload-video', upload.single('video'), (req, res) => {
-  if (!req.file) {
-    return res.status(400).send('No video file uploaded.');
-  }
+// Endpoint to receive individual frames from the webcam
+app.post('/upload-frame', upload.single('frame'), (req, res) => {
+    if (!req.file) {
+        return res.status(400).send('No frame received.');
+    }
 
-  console.log('Video file received:', req.file);
+    console.log('Frame received:', req.file);
 
-  // You can process the video here or just store it
-  res.json({ message: 'Video uploaded successfully', file: req.file });
+    // You can process the frame here or just store it
+    res.json({ message: 'Frame received successfully', file: req.file });
 });
 
+// Start the server
 app.listen(port, () => {
-  console.log(`Server is running on port ${port}`);
+    console.log(`Server is running on port ${port}`);
 });
-app.get('/videos', (req, res) => {
-    fs.readdir('uploads', (err, files) => {
-      if (err) {
-        return res.status(500).send('Error reading uploads directory');
-      }
-  
-      const videoFiles = files.filter(file => path.extname(file) === '.webm');
-      let videoList = '';
-      videoFiles.forEach(file => {
-        videoList += `<li><a href="/uploads/${file}" target="_blank">${file}</a></li>`;
-      });
-  
-      res.send(`
-        <html>
-          <body>
-            <h1>Uploaded Videos</h1>
-            <ul>${videoList}</ul>
-          </body>
-        </html>
-      `);
-    });
-  });
-  
