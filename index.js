@@ -1,27 +1,41 @@
 const express = require('express');
-const axios = require('axios');  // For fetching live data or feed
-const cors = require('cors');
+const multer = require('multer');
+const fs = require('fs');
+const path = require('path');
+
 const app = express();
 const port = process.env.PORT || 3000;
 
-app.use(cors());
+// Set up storage for video files
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, 'uploads/');
+  },
+  filename: (req, file, cb) => {
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    cb(null, file.fieldname + '-' + uniqueSuffix + path.extname(file.originalname));
+  }
+});
 
-// Sample endpoint to retrieve live feed (replace with actual feed logic)
-app.get('/live-feed', async (req, res) => {
-    try {
-        // Replace with the actual live feed source URL or logic
-        const response = await axios.get('LIVE_FEED_URL', {
-            responseType: 'stream'
-        });
-        
-        // Stream the live feed to the client
-        response.data.pipe(res);
-    } catch (error) {
-        console.error(error);
-        res.status(500).json({ error: 'Error fetching live feed' });
-    }
+const upload = multer({ storage: storage });
+
+// Create uploads folder if it doesn't exist
+if (!fs.existsSync('uploads')) {
+  fs.mkdirSync('uploads');
+}
+
+// Endpoint to receive video from local machine
+app.post('/upload-video', upload.single('video'), (req, res) => {
+  if (!req.file) {
+    return res.status(400).send('No video file uploaded.');
+  }
+
+  console.log('Video file received:', req.file);
+
+  // You can process the video here or just store it
+  res.json({ message: 'Video uploaded successfully', file: req.file });
 });
 
 app.listen(port, () => {
-    console.log(`Server is running on port ${port}`);
+  console.log(`Server is running on port ${port}`);
 });

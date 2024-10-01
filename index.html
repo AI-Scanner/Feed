@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Live Feed</title>
+</head>
+<body>
+  <h1>Live Feed</h1>
+  <video id="liveFeed" controls autoplay></video>
+
+  <script>
+    const video = document.getElementById('liveFeed');
+    const liveFeedUrl = 'https://your-app.onrender.com/live-feed'; // Replace with your deployed URL
+    
+    fetch(liveFeedUrl)
+      .then(response => {
+        if (response.ok) {
+          video.src = liveFeedUrl;
+        } else {
+          console.error('Error fetching live feed:', response.statusText);
+        }
+      })
+      .catch(error => console.error('Error:', error));
+  </script>
+</body>
+</html>
