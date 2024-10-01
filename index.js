@@ -47,3 +47,26 @@ app.post('/upload-video', upload.single('video'), (req, res) => {
 app.listen(port, () => {
   console.log(`Server is running on port ${port}`);
 });
+app.get('/videos', (req, res) => {
+    fs.readdir('uploads', (err, files) => {
+      if (err) {
+        return res.status(500).send('Error reading uploads directory');
+      }
+  
+      const videoFiles = files.filter(file => path.extname(file) === '.webm');
+      let videoList = '';
+      videoFiles.forEach(file => {
+        videoList += `<li><a href="/uploads/${file}" target="_blank">${file}</a></li>`;
+      });
+  
+      res.send(`
+        <html>
+          <body>
+            <h1>Uploaded Videos</h1>
+            <ul>${videoList}</ul>
+          </body>
+        </html>
+      `);
+    });
+  });
+  
