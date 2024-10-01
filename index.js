@@ -2,9 +2,13 @@ const express = require('express');
 const multer = require('multer');
 const fs = require('fs');
 const path = require('path');
+const cors = require('cors');
 
 const app = express();
 const port = process.env.PORT || 3000;
+
+// Enable CORS for all routes
+app.use(cors());
 
 // Set up storage for frame images
 const storage = multer.diskStorage({
@@ -27,6 +31,7 @@ if (!fs.existsSync('frames')) {
 // Endpoint to receive individual frames from the webcam
 app.post('/upload-frame', upload.single('frame'), (req, res) => {
     if (!req.file) {
+        console.error('No frame received.');
         return res.status(400).send('No frame received.');
     }
 
