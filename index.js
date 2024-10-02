@@ -1,22 +1,19 @@
 const express = require('express');
 const http = require('http');
-const multer = require('multer');
 const socketIo = require('socket.io');
 
 const app = express();
 const server = http.createServer(app);
 const io = socketIo(server);
 
-// Set up multer for handling frame uploads
-const storage = multer.memoryStorage(); // Store in memory
-const upload = multer({ storage: storage });
-
-// Route for receiving frame data via socket.io
 io.on('connection', (socket) => {
   console.log('New client connected');
+
+  // Listen for 'frame' events
   socket.on('frame', (data) => {
     console.log('Frame received');
-    io.emit('frame', data); // Broadcast frame to all clients
+    // Broadcast frame to other clients or process it
+    io.emit('frame', data);
   });
 
   socket.on('disconnect', () => {
@@ -24,6 +21,9 @@ io.on('connection', (socket) => {
   });
 });
 
-// Start the server
-const port = process.env.PORT || 3000;
-server.listen(port, () => console.log(`Server listening on port ${port}`));
+server.listen(process.env.PORT || 3000, () => {
+  console.log('Server is running...');
+});
+
+const cors = require('cors');
+app.use(cors());
