@@ -1,30 +1,29 @@
 const express = require('express');
 const http = require('http');
+const multer = require('multer');
 const socketIo = require('socket.io');
 
 const app = express();
 const server = http.createServer(app);
 const io = socketIo(server);
 
-io.on('connection', socket => {
-    console.log('A user connected');
+// Set up multer for handling frame uploads
+const storage = multer.memoryStorage(); // Store in memory
+const upload = multer({ storage: storage });
 
-    socket.on('offer', offer => {
-        console.log('Received offer:', offer);
-        // Send the offer to the appropriate client (e.g., the server processing video)
-    });
+// Route for receiving frame data via socket.io
+io.on('connection', (socket) => {
+  console.log('New client connected');
+  socket.on('frame', (data) => {
+    console.log('Frame received');
+    io.emit('frame', data); // Broadcast frame to all clients
+  });
 
-    socket.on('answer', answer => {
-        console.log('Received answer:', answer);
-        // Handle the answer in the WebRTC handshake
-    });
-
-    socket.on('ice-candidate', candidate => {
-        console.log('Received ICE candidate:', candidate);
-        // Handle the ICE candidate
-    });
+  socket.on('disconnect', () => {
+    console.log('Client disconnected');
+  });
 });
 
-server.listen(3000, () => {
-    console.log('WebRTC signaling server is running on port 3000');
-});
+// Start the server
+const port = process.env.PORT || 3000;
+server.listen(port, () => console.log(`Server listening on port ${port}`));
