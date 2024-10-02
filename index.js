@@ -1,29 +1,57 @@
 const express = require('express');
-const http = require('http');
-const socketIo = require('socket.io');
+const cors = require('cors');
+const multer = require('multer');
+const path = require('path');
+const fs = require('fs');
 
 const app = express();
-const server = http.createServer(app);
-const io = socketIo(server);
 
-io.on('connection', (socket) => {
-  console.log('New client connected');
+// Allow CORS for local development
+app.use(cors({
+  origin: 'http://127.0.0.1:5501',
+  methods: ['GET', 'POST'],
+}));
 
-  // Listen for 'frame' events
-  socket.on('frame', (data) => {
-    console.log('Frame received');
-    // Broadcast frame to other clients or process it
-    io.emit('frame', data);
-  });
+// Setup storage for the frames
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, 'frames/');  // Store frames in 'frames' folder
+  },
+  filename: (req, file, cb) => {
+    const uniqueName = Date.now() + '-' + Math.round(Math.random() * 1E9) + path.extname(file.originalname);
+    cb(null, uniqueName);
+  }
+});
+const upload = multer({ storage });
 
-  socket.on('disconnect', () => {
-    console.log('Client disconnected');
+// Create 'frames' folder if it doesn't exist
+if (!fs.existsSync('frames')) {
+  fs.mkdirSync('frames');
+}
+
+// Endpoint to receive frames
+app.post('/upload-frame', upload.single('frame'), (req, res) => {
+  if (!req.file) {
+    return res.status(400).send('No frame uploaded.');
+  }
+  console.log('Frame received:', req.file);
+  res.json({ message: 'Frame uploaded successfully', file: req.file });
+});
+
+// Endpoint to view uploaded frames
+app.get('/view-frames', (req, res) => {
+  fs.readdir('frames', (err, files) => {
+    if (err) {
+      return res.status(500).send('Unable to read frames directory.');
+    }
+    res.json(files);
   });
 });
 
-server.listen(process.env.PORT || 3000, () => {
-  console.log('Server is running...');
-});
+// Serve static files from the 'frames' folder
+app.use('/frames', express.static(path.join(__dirname, 'frames')));
 
-const cors = require('cors');
-app.use(cors());
+const port = process.env.PORT || 3000;
+app.listen(port, () => {
+  console.log(`Server is running on port ${port}`);
+});
