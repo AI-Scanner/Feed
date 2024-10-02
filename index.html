@@ -3,12 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Live Webcam Stream to API</title>
+    <title>Live Webcam Frame Feed</title>
 </head>
 <body>
-    <h1>Live Webcam Stream to API</h1>
+    <h1>Live Webcam Frame Feed</h1>
     <video id="webcam" autoplay playsinline></video>
-    <button id="startStream">Start Streaming</button>
+    <button id="startStream">Start Sending Frames</button>
 
     <script>
         const video = document.getElementById('webcam');
@@ -23,15 +23,15 @@
                 const canvas = document.createElement('canvas');
                 const context = canvas.getContext('2d');
 
-                // Start streaming frames when the button is clicked
+                // Start sending frames when the button is clicked
                 startStreamButton.addEventListener('click', () => {
                     if (!streaming) {
                         streaming = true;
-                        startStreamButton.textContent = 'Stop Streaming';
+                        startStreamButton.textContent = 'Stop Sending Frames';
                         sendFramesToAPI();  // Start sending frames
                     } else {
                         streaming = false;
-                        startStreamButton.textContent = 'Start Streaming';
+                        startStreamButton.textContent = 'Start Sending Frames';
                     }
                 });
 
@@ -49,18 +49,24 @@
                         const formData = new FormData();
                         formData.append('frame', blob, 'frame.jpg');
 
+                        // Log to verify the blob data is correct
+                        console.log("Sending frame:", blob);
+
                         // Send the frame to your API
                         fetch('https://feed-cm5r.onrender.com/upload-frame', {
                             method: 'POST',
-                            body: formData
+                            body: formData,
+                            headers: {
+                                'Accept': 'application/json'
+                            }
                         })
                         .then(response => response.json())
                         .then(data => console.log('Frame sent:', data))
                         .catch(error => console.error('Error sending frame:', error));
 
-                        // Continue sending the next frame
+                        // Continue sending the next frame (every 100ms for example)
                         if (streaming) {
-                            requestAnimationFrame(sendFramesToAPI);
+                            setTimeout(sendFramesToAPI, 100); // Delay between frame sending
                         }
                     }, 'image/jpeg');
                 }

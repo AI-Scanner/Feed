@@ -13,7 +13,7 @@ app.use(cors());
 // Set up storage for frame images
 const storage = multer.diskStorage({
     destination: (req, file, cb) => {
-        cb(null, 'frames/');
+        cb(null, 'frames/'); // Ensure this directory exists
     },
     filename: (req, file, cb) => {
         const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
